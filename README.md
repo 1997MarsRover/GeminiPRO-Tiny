@@ -4,8 +4,10 @@ Run GeminiPro-Tiny on your local environment.
 Enter prompt here >> what is life
 ```
 
+
+
 ```python
-response.prompt_feedback
+response.text
 ```
 Gemini Execution time is roughly **7.57s**, which is optimal, but am sure it can get even faster.
 
