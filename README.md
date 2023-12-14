@@ -1,5 +1,24 @@
 # GeminiPRO-Tiny
 Run GeminiPro-Tiny on your local environment.
+Load google-generativeai 
+```bash
+!pip install -q -U google-generativeai
+
+```
+
+Create a GOOGLE_API_KEY from [Google AI Studio](https://makersuite.google.com/app/apikey) and save it your config.py
+```python
+GOOGLE_API_KEY = <your api secret>
+```
+You can also test your API Secret with:
+```bash
+curl \
+-H 'Content-Type: application/json' \
+-d '{ "prompt": { "text": "Write a story about a magic backpack"} }' \
+"https://generativelanguage.googleapis.com/v1beta3/models/text-bison-001:generateText?key=YOUR_API_KEY"
+```
+Now run prompts on Gemini..
+
 ```bash
 Enter prompt here >> what is life
 ```
