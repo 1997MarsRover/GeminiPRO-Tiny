@@ -46,18 +46,24 @@ def prompt(text: str):
     print(f"Execution time: {total_time:.2f} seconds")
     print(f"Gemini response: {response}")
     return response, total_time
+def chat_inf():
+    gemini = "Hi, I am Gemini. How can I help you today?"
+    print(gemini)
+    while True:
+        response, total_time = prompt(input("Enter prompt here >> "))
+        if response:
+            print(response.text)
+            
+            # Check if 'prompt_feedback' exists in the response object
+            prompt_feedback = getattr(response, 'prompt_feedback', None)
+            
+            if prompt_feedback:
+                #print(prompt_feedback)
+                safety_ratings = prompt_feedback.safety_ratings
+            else:
+                print("No prompt feedback available.")
+def main():
+    chat_inf()
 
-gemini = "Hi, I am Gemini. How can I help you today?"
-print(gemini)
-
-response, total_time = prompt(input("Enter prompt here >> "))
-
-if response:
-    print(response.text)
-    
-    # Check if 'prompt_feedback' exists in the response object
-    prompt_feedback = getattr(response, 'prompt_feedback', None)
-    if prompt_feedback:
-        print(prompt_feedback)
-    else:
-        print("No prompt feedback available.")
+if __name__ == "__main__":
+    main()
