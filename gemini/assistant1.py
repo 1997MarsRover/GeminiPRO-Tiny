@@ -2,8 +2,7 @@ import pathlib, textwrap,time
 from config import GOOGLE_API_KEY
 import google.generativeai as genai
 from IPython.display import display, Markdown
-
-
+from Speech.Text_to_speech.text_to_speech import text_to_speech_engine as tts
 # Used to securely store your API key
 genai.configure(api_key=GOOGLE_API_KEY)
 
@@ -50,6 +49,8 @@ def chat_inf():
         response, total_time = prompt(input("Enter prompt here >> "))
         if response:
             print(response.text)
+            tts_engine = tts(response.text, 150)
+            tts_engine.TTS()
             
             # Check if 'prompt_feedback' exists in the response object
             prompt_feedback = getattr(response, 'prompt_feedback', None)
