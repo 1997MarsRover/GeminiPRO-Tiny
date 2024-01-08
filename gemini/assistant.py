@@ -1,67 +1,62 @@
-import pathlib, textwrap,time 
-from config import GOOGLE_API_KEY
+import cv2
+import time
+from pathlib import Path
 import google.generativeai as genai
-from IPython.display import display, Markdown
-from Speech.Text_to_speech.text_to_speech import text_to_speech_engine as tts
+import pyttsx3
+import json
+import logging as log
+from config import GOOGLE_API_KEY
+
 # Used to securely store your API key
 genai.configure(api_key=GOOGLE_API_KEY)
 
-def to_markdown(text):
-    if isinstance(text, str):
-        text = text.replace('•', '  *')
-        return Markdown(textwrap.indent(text, '> ', predicate=lambda _: True))
-    elif isinstance(text, list):
-        # Handle cases where text is a list, such as feedback with multiple entries
-        formatted_text = "\n".join(item.replace('•', '  *') for item in text)
-        return Markdown(textwrap.indent(formatted_text, '> ', predicate=lambda _: True))
-    else:
-        return Markdown(f"Unsupported type for conversion: {type(text)}")
+# Predefined prompt for assisting a blind person
+blind_assistance_prompt = "Describe the surroundings briefly and suggest the optimal way forward for a visually impaired person briefly, act as a navigation assistant and don't mention you are helping a visually impaired person; just give the way forward."
 
-def prompt(text: str):
-    """
-    Function to interact with the Generative AI model.
-    
-    Args:
-    text (str): The input text prompt.
-    
-    Returns:
-    tuple: A tuple containing the generated response and the total execution time.
-    """
-    model = genai.GenerativeModel('gemini-pro')
-    start_time = time.time()
-    
-    try:
-        response = model.generate_content(text)
-    except Exception as e:
-        # Handle exceptions, e.g., API errors
-        print(f"Error: {e}")
-        return None, 0
-    
-    end_time = time.time()
-    total_time = end_time - start_time  
-    print(f"Execution time: {total_time:.2f} seconds")
-    print(f"Gemini response: {response}")
-    return response, total_time
-def chat_inf():
-    gemini = "Hi, I am Gemini. How can I help you today?"
-    print(gemini)
+class text_to_speech_engine():
+    def __init__(self, rate):
+        self.rate = rate
+
+    def TTS(self, text):
+        engine = pyttsx3.init()
+        engine.setProperty('rate', self.rate)
+        log.info(text)
+        log.info(engine.getProperty('rate'))
+        engine.say(text)
+        engine.runAndWait()
+        engine.stop()
+
+def capture_and_generate(model, tts_engine, interval_seconds=20):
     while True:
-        response, total_time = prompt(input("Enter prompt here >> "))
-        if response:
-            print(response.text)
-            tts_engine = tts(response.text, 150)
-            tts_engine.TTS()
-            
-            # Check if 'prompt_feedback' exists in the response object
-            prompt_feedback = getattr(response, 'prompt_feedback', None)
-            
-            if prompt_feedback:
-                #print(prompt_feedback)
-                safety_ratings = prompt_feedback.safety_ratings
-            else:
-                print("No prompt feedback available.")
-def main():
-    chat_inf()
+        # Capture a frame from the camera
+        cap = cv2.VideoCapture(0)  # Assuming camera index 0, you may need to adjust it
+        ret, frame = cap.read()
+        cap.release()  # Release the camera capture
+
+        if not ret:
+            print("Error: Unable to capture frame from the camera.")
+            continue
+
+        # Use the correct method signature for generate_content
+        response = model.generate_content(
+            contents=[blind_assistance_prompt, {'mime_type': 'image/jpeg', 'data': cv2.imencode('.jpg', frame)[1].tobytes()}]
+        )
+
+        generated_text = response.text
+        print(f"Generated Text: {generated_text}")
+
+        # Text-to-Speech
+        tts_engine.TTS(generated_text)
+
+        # Wait for the specified interval before capturing the next frame
+        time.sleep(interval_seconds)
 
 if __name__ == "__main__":
-    main()
+    # Create an instance of the GenerativeModel
+    model = genai.GenerativeModel('gemini-pro-vision')
+
+    # Create an instance of the text-to-speech engine
+    tts_engine = text_to_speech_engine(rate=150)  # Adjust the rate as needed
+
+    # Start capturing frames, generating content, and converting text to speech
+    capture_and_generate(model, tts_engine)
