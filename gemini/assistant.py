@@ -1,62 +1,57 @@
 import cv2
 import time
-from pathlib import Path
 import google.generativeai as genai
 import pyttsx3
-import json
 import logging as log
 from config import GOOGLE_API_KEY
 
-# Used to securely store your API key
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# Predefined prompt for assisting a blind person
-blind_assistance_prompt = "Describe the surroundings briefly and suggest the optimal way forward for a visually impaired person briefly, act as a navigation assistant and don't mention you are helping a visually impaired person; just give the way forward."
-
-class text_to_speech_engine():
+class TextToSpeechEngine:
     def __init__(self, rate):
         self.rate = rate
+        self.engine = pyttsx3.init()
 
-    def TTS(self, text):
-        engine = pyttsx3.init()
-        engine.setProperty('rate', self.rate)
+    def tts(self, text):
+        self.engine.setProperty('rate', self.rate)
         log.info(text)
-        log.info(engine.getProperty('rate'))
-        engine.say(text)
-        engine.runAndWait()
-        engine.stop()
+        log.info(self.engine.getProperty('rate'))
+        self.engine.say(text)
+        self.engine.runAndWait()
 
-def capture_and_generate(model, tts_engine, interval_seconds=20):
-    while True:
-        # Capture a frame from the camera
-        cap = cv2.VideoCapture(0)  # Assuming camera index 0, you may need to adjust it
-        ret, frame = cap.read()
-        cap.release()  # Release the camera capture
-
-        if not ret:
-            print("Error: Unable to capture frame from the camera.")
-            continue
-
-        # Use the correct method signature for generate_content
-        response = model.generate_content(
-            contents=[blind_assistance_prompt, {'mime_type': 'image/jpeg', 'data': cv2.imencode('.jpg', frame)[1].tobytes()}]
+class BlindAssistanceSystem:
+    def __init__(self, model, tts_engine, prompt_interval=20):
+        self.model = model
+        self.tts_engine = tts_engine
+        self.prompt_interval = prompt_interval
+        self.blind_assistance_prompt = (
+            "you are a Navigation assistant for a visual impaired person. What is the optimal way forward the person should take to avoid collision, only state the object you see if it is in the way of the person."
         )
 
-        generated_text = response.text
-        print(f"Generated Text: {generated_text}")
+    def capture_and_generate(self):
+        while True:
+            frame = self.capture_frame()
+            if frame is not None:
+                response = self.model.generate_content(
+                    contents=[self.blind_assistance_prompt, {'mime_type': 'image/jpeg', 'data': cv2.imencode('.jpg', frame)[1].tobytes()}]
+                )
 
-        # Text-to-Speech
-        tts_engine.TTS(generated_text)
+                generated_text = response.text
+                print(f"Generated Text: {generated_text}")
+                self.tts_engine.tts(generated_text)
+                time.sleep(self.prompt_interval)
 
-        # Wait for the specified interval before capturing the next frame
-        time.sleep(interval_seconds)
+    def capture_frame(self):
+        cap = cv2.VideoCapture(0)
+        ret, frame = cap.read()
+        cap.release()
+        if not ret:
+            log.error("Error: Unable to capture frame from the camera.")
+        return frame
 
 if __name__ == "__main__":
-    # Create an instance of the GenerativeModel
     model = genai.GenerativeModel('gemini-pro-vision')
+    tts_engine = TextToSpeechEngine(rate=150)
 
-    # Create an instance of the text-to-speech engine
-    tts_engine = text_to_speech_engine(rate=150)  # Adjust the rate as needed
-
-    # Start capturing frames, generating content, and converting text to speech
-    capture_and_generate(model, tts_engine)
+    blind_system = BlindAssistanceSystem(model, tts_engine)
+    blind_system.capture_and_generate()
