@@ -5,6 +5,7 @@ import pyttsx3
 import logging as log
 from config import GOOGLE_API_KEY
 
+# Configure Google AI with API key
 genai.configure(api_key=GOOGLE_API_KEY)
 
 class TextToSpeechEngine:
@@ -32,28 +33,39 @@ class BlindAssistanceSystem:
         while True:
             frame = self.capture_frame()
             if frame is not None:
+                # Generate content using the model
                 response = self.model.generate_content(
                     contents=[self.blind_assistance_prompt, {'mime_type': 'image/jpeg', 'data': cv2.imencode('.jpg', frame)[1].tobytes()}]
                 )
 
+                # Extract generated text and log it
                 generated_text = response.text
-                print(response.prompt_feedback)
-                print(f"Generated Text: {generated_text}")
-                
+                log.info(response.prompt_feedback)
+                log.info(f"Generated Text: {generated_text}")
+
+                # Convert generated text to speech
                 self.tts_engine.tts(generated_text)
+
+                # Wait for the specified interval before capturing the next frame
                 time.sleep(self.prompt_interval)
 
     def capture_frame(self):
+        # Capture a frame from the camera (you may need to adjust the camera index)
         cap = cv2.VideoCapture(0)
         ret, frame = cap.read()
         cap.release()
+
+        # Log an error if unable to capture the frame
         if not ret:
             log.error("Error: Unable to capture frame from the camera.")
+
         return frame
 
 if __name__ == "__main__":
+    # Create instances of the GenerativeModel and TextToSpeechEngine
     model = genai.GenerativeModel('gemini-pro-vision')
     tts_engine = TextToSpeechEngine(rate=150)
 
+    # Create an instance of the BlindAssistanceSystem and start capturing and generating
     blind_system = BlindAssistanceSystem(model, tts_engine)
     blind_system.capture_and_generate()
