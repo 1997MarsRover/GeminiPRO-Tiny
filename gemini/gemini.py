@@ -3,10 +3,10 @@ import time
 import google.generativeai as genai
 import pyttsx3
 import logging as log
-from config import GOOGLE_API_KEY
+
 
 # Configure Google AI with API key
-genai.configure(api_key=GOOGLE_API_KEY)
+genai.configure(api_key="AIzaSyA-gaD4q8UwEp2Z5yKZ0g0MZa7CoCVA1VU")
 
 class TextToSpeechEngine:
     def __init__(self, rate):
