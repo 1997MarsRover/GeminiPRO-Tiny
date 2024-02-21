@@ -1,8 +1,9 @@
-import cv2
 import time
 import google.generativeai as genai
 import pyttsx3
 import logging as log
+from picamera import PiCamera
+from io import BytesIO
 
 
 # Configure Google AI with API key
@@ -30,36 +31,29 @@ class BlindAssistanceSystem:
         )
 
     def capture_and_generate(self):
-        while True:
-            frame = self.capture_frame()
-            if frame is not None:
-                # Generate content using the model
-                response = self.model.generate_content(
-                    contents=[self.blind_assistance_prompt, {'mime_type': 'image/jpeg', 'data': cv2.imencode('.jpg', frame)[1].tobytes()}]
-                )
+        with PiCamera() as camera:
+            while True:
+                stream = BytesIO()
+                camera.capture(stream, format='jpeg')
+                stream.seek(0)
+                frame = stream.getvalue()
 
-                # Extract generated text and log it
-                generated_text = response.text
-                log.info(response.prompt_feedback)
-                log.info(f"Generated Text: {generated_text}")
+                if frame is not None:
+                    # Generate content using the model
+                    response = self.model.generate_content(
+                        contents=[self.blind_assistance_prompt, {'mime_type': 'image/jpeg', 'data': frame}]
+                    )
 
-                # Convert generated text to speech
-                self.tts_engine.tts(generated_text)
+                    # Extract generated text and log it
+                    generated_text = response.text
+                    log.info(response.prompt_feedback)
+                    log.info(f"Generated Text: {generated_text}")
 
-                # Wait for the specified interval before capturing the next frame
-                time.sleep(self.prompt_interval)
+                    # Convert generated text to speech
+                    self.tts_engine.tts(generated_text)
 
-    def capture_frame(self):
-        # Capture a frame from the camera (you may need to adjust the camera index)
-        cap = cv2.VideoCapture(0)
-        ret, frame = cap.read()
-        cap.release()
-
-        # Log an error if unable to capture the frame
-        if not ret:
-            log.error("Error: Unable to capture frame from the camera.")
-
-        return frame
+                    # Wait for the specified interval before capturing the next frame
+                    time.sleep(self.prompt_interval)
 
 if __name__ == "__main__":
     # Create instances of the GenerativeModel and TextToSpeechEngine
