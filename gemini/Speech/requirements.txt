@@ -1,6 +1,0 @@
-pyttsx3
-wave
-sys
-pyaudio
-speech_recognition
-
